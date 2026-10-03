@@ -66,6 +66,9 @@ let bundled: Vocabulary = {
     ("I went for a walk in the park and my soul felt light.",
      "I went for a walk in the park and my soul felt light."),
     ("The nickel price went up.", "The nickel price went up."),
+    ("Anything in the read me that needs to be updated after this?",
+     "Anything in the README that needs to be updated after this?"),
+    ("Can you read me the list?", "Can you read me the list?"),
 ])
 func bundledVocabulary(raw: String, expected: String) {
     #expect(bundled.terms.count > 300)

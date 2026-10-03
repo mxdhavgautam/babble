@@ -316,6 +316,7 @@ K8s: k eights, k eight s
 Docker
 Terraform: terra form
 GitHub: git hub
+README: read me, readme
 GitLab: git lab
 Linear
 Sentry
@@ -480,3 +481,7 @@ harness
 terminal
 worktree
 codebase
+docs
+file
+update
+updated
