@@ -119,11 +119,16 @@ final class AppController {
             await recording.dictation.cancel()
         } else {
             pill.showProcessing()
-            let raw = (try? await recording.dictation.finish()) ?? ""
+            var raw = ""
+            do { raw = try await recording.dictation.finish() } catch { log.error("Transcription failed: \(error)") }
             let text = raw.isEmpty ? raw : Polish.apply(raw, vocabulary: .load())
             pill.hide()
-            if !text.isEmpty { await Paster.paste(text) }
-            log.info("Pasted \(ContinuousClock.now - released, privacy: .public) after release")
+            if text.isEmpty {
+                log.info("Nothing heard in \(released - recording.startedAt, privacy: .public)")
+            } else {
+                await Paster.paste(text)
+                log.info("Pasted \(text.count, privacy: .public) chars \(ContinuousClock.now - released, privacy: .public) after release")
+            }
         }
         state = .idle
     }

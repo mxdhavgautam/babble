@@ -6,24 +6,27 @@ import Carbon.HIToolbox
 @MainActor
 enum Paster {
     static func paste(_ text: String) async {
+        // Wait for keys first, then do clipboard swap → ⌘V → restore back to back, so nothing
+        // copied in the meantime can be pasted instead of (or clobbered by) the transcript.
+        await waitForModifiersReleased()
+        if !AXIsProcessTrusted() { log.error("No Accessibility permission, so ⌘V can't be sent") }
+
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
-
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         // Tells clipboard managers to skip this entry.
         pasteboard.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
         let ours = pasteboard.changeCount
-
-        await waitForModifiersReleased()
-        // Something else took the clipboard while we waited; pasting now would paste their content.
-        guard pasteboard.changeCount == ours else { return }
         pressCommandV()
 
-        try? await Task.sleep(for: .milliseconds(300))
-        guard pasteboard.changeCount == ours else { return }
-        pasteboard.clearContents()
-        if !saved.isEmpty { pasteboard.writeObjects(saved) }
+        // Give the target app a moment to read the clipboard before putting the user's back.
+        Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard pasteboard.changeCount == ours else { return }
+            pasteboard.clearContents()
+            if !saved.isEmpty { pasteboard.writeObjects(saved) }
+        }
     }
 
     private static func snapshot(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {
@@ -36,7 +39,7 @@ enum Paster {
         }
     }
 
-    /// A still-held Option would turn ⌘V into ⌘⌥V in some apps, so wait (up to 1s) for it to lift.
+    /// Keys still held when ⌘V lands can confuse the target app, so give them up to 1s to lift.
     private static func waitForModifiersReleased() async {
         for _ in 0..<50 {
             if NSEvent.modifierFlags.intersection([.option, .shift, .control, .command]).isEmpty { return }
@@ -45,7 +48,8 @@ enum Paster {
     }
 
     private static func pressCommandV() {
-        let source = CGEventSource(stateID: .combinedSessionState)
+        // A private source keeps physically held keys (Option, a stray letter) out of the event.
+        let source = CGEventSource(stateID: .privateState)
         for keyDown in [true, false] {
             let event = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: keyDown)
             event?.flags = .maskCommand
