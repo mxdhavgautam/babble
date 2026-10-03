@@ -93,7 +93,7 @@ struct Token {
 struct Vocabulary {
     struct Term {
         let spelling: String
-        let letters: String  // lowercased letters and digits, so "Ai2" never matches a spoken "AI"
+        let key: String  // lowercased letters and digits: "T3 Code" → "t3code", and "Ai2" never matches "AI"
         let aliases: Set<String>
         let sound: String
     }
@@ -138,10 +138,10 @@ struct Vocabulary {
             let parts = line.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
             let spelling = parts[0].trimmingCharacters(in: .whitespaces)
             guard !spelling.isEmpty else { continue }  // e.g. a stray ":" line
-            let aliases = parts.count > 1 ? parts[1].split(separator: ",").map { Self.letters(String($0)) } : []
+            let aliases = parts.count > 1 ? parts[1].split(separator: ",").map { Self.key(String($0)) } : []
             terms.append(
                 Term(
-                    spelling: spelling, letters: spelling.lowercased().filter { $0.isLetter || $0.isNumber }, aliases: Set(aliases.filter { !$0.isEmpty }),
+                    spelling: spelling, key: Self.key(spelling), aliases: Set(aliases.filter { !$0.isEmpty }),
                     sound: Self.sound(of: spelling)))
         }
         self.terms = terms
@@ -201,25 +201,27 @@ struct Vocabulary {
         // A comma or period inside the run means separate words, not one term.
         guard run.dropLast().allSatisfy({ $0.trailing.isEmpty }) else { return nil }
         let spoken = run.map(\.core).joined()
-        let letters = Self.letters(spoken)
-        guard !letters.isEmpty, letters.count == spoken.count else { return nil }  // words only, no digits
+        let key = Self.key(spoken)
+        // Letters and digits only ("T3 code" yes, "5.5" no).
+        guard !key.isEmpty, key.count == spoken.count, key.contains(where: \.isLetter) else { return nil }
         let range = run.startIndex..<run.endIndex
         func confidence(for term: Term) -> Confidence {
             guard run.allSatisfy({ Self.isEnglishWord($0.core, comparedTo: term) }) else { return .certain }
             return run.count > 1 ? .likely : .contextual
         }
 
-        if let term = terms.first(where: { $0.letters == letters }) {
-            guard spoken != term.spelling else { return nil }
+        if let term = terms.first(where: { $0.key == key }) {
+            guard run.map(\.core).joined(separator: " ") != term.spelling else { return nil }
             return Match(range: range, term: term, confidence: confidence(for: term))
         }
-        if let term = terms.first(where: { $0.aliases.contains(letters) }) {
+        if let term = terms.first(where: { $0.aliases.contains(key) }) {
             return Match(range: range, term: term, confidence: confidence(for: term))
         }
         // Sound-alike guesses: only for single non-words ("cloudflur"), never for correctly spelled
         // English like "request" or "merge", and only against longer terms.
-        guard run.count == 1, letters.count >= 5, !Self.isEnglishWord(run.first!.core) else { return nil }
-        let sound = Self.sound(of: letters)
+        guard run.count == 1, key.count >= 5, key.allSatisfy(\.isLetter), !Self.isEnglishWord(run.first!.core)
+        else { return nil }
+        let sound = Self.sound(of: key)
         let term = terms.first { term in
             term.sound.count >= 4
                 && (term.sound == sound || (term.sound.count >= 6 && Self.isOneEditApart(term.sound, sound)))
@@ -259,6 +261,10 @@ struct Vocabulary {
         let text = (try? String(contentsOfFile: "/usr/share/dict/words", encoding: .utf8)) ?? ""
         return Set(text.split(whereSeparator: \.isNewline).lazy.filter { $0.count <= 5 }.map { $0.lowercased() })
     }()
+
+    static func key(_ text: String) -> String {
+        text.lowercased().filter { $0.isLetter || $0.isNumber }
+    }
 
     static func letters(_ text: String) -> String {
         text.lowercased().filter(\.isLetter)

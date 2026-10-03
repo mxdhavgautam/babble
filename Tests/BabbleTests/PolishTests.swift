@@ -69,6 +69,8 @@ let bundled: Vocabulary = {
     ("Anything in the read me that needs to be updated after this?",
      "Anything in the README that needs to be updated after this?"),
     ("Can you read me the list?", "Can you read me the list?"),
+    ("T3 code is my primary orchestrator, whether it's codex, clot code, cursor, or whatever. It should not be limited to this cloud code.",
+     "T3 Code is my primary orchestrator, whether it's Codex, Claude Code, Cursor, or whatever. It should not be limited to this Claude Code."),
 ])
 func bundledVocabulary(raw: String, expected: String) {
     #expect(bundled.terms.count > 300)
