@@ -5,12 +5,12 @@ import QuartzCore
 /// and only redraws (capped at 30fps) while listening.
 @MainActor
 final class Pill {
-    private static let size = NSSize(width: 64, height: 22)
-    private static let barCount = 11
-    private static let barWidth: CGFloat = 2
-    private static let barGap: CGFloat = 2.5
-    private static let minBarHeight: CGFloat = 2
-    private static let maxBarHeight: CGFloat = 12
+    private static let size = NSSize(width: 56, height: 32)
+    private static let barCount = 7
+    private static let barWidth: CGFloat = 3
+    private static let barGap: CGFloat = 3
+    private static let minBarHeight: CGFloat = 3
+    private static let maxBarHeight: CGFloat = 20
 
     private let panel: NSPanel
     private let bars: [CALayer]
