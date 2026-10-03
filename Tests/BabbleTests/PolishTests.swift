@@ -17,6 +17,10 @@ let vocabulary = Vocabulary(lines: [
     ("check the dns and ip address", "Check the DNS and IP address"),
     ("Open C slash user slash project.", "Open C/user/project."),
     ("go to tilda slash projects slash babble", "Go to ~/projects/babble"),
+    ("open tilde slash code", "Open ~/code"),
+    ("Please slash the price.", "Please slash the price."),
+    ("Open tilde slash.", "Open tilde slash."),
+    ("src slash main slash app", "Src/main/app"),
     ("The server IP is 102.154.234.2.", "The server IP is 102.154.234.2."),
     // Real words are replaced when the sentence is technical...
     ("where Jev, GPT6, Seoul, and Luna fit", "Where Jev, GPT6, Sol, and Luna fit"),
@@ -61,8 +65,15 @@ let bundled: Vocabulary = {
      "Thank you to general translation and paper for sponsoring."),
     ("I went for a walk in the park and my soul felt light.",
      "I went for a walk in the park and my soul felt light."),
+    ("The nickel price went up.", "The nickel price went up."),
 ])
 func bundledVocabulary(raw: String, expected: String) {
     #expect(bundled.terms.count > 300)
     #expect(Polish.apply(raw, vocabulary: bundled) == expected)
+}
+
+@MainActor
+@Test func ignoresMalformedVocabularyLines() {
+    let vocabulary = Vocabulary(lines: [":", " : groc", "Grok: groc"])
+    #expect(vocabulary.terms.map(\.spelling) == ["Grok"])
 }

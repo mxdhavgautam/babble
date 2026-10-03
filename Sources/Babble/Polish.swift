@@ -15,22 +15,40 @@ enum Polish {
         return result
     }
 
-    /// Glues "a slash b" into "a/b"; "tilde slash" becomes "~/".
+    /// Turns spoken paths into real ones: "c slash users slash projects" → "C/users/projects",
+    /// "tilde slash code" → "~/code". A single "slash" only counts after a drive letter or tilde,
+    /// so "please slash the price" stays prose.
     private static func joinPaths(_ tokens: [Token]) -> [Token] {
+        func separator(_ token: Token) -> String? {
+            guard token.leading.isEmpty, token.trailing.isEmpty else { return nil }
+            switch token.core.lowercased() {
+            case "slash": return "/"
+            case "backslash": return "\\"
+            default: return nil
+            }
+        }
+
         var out: [Token] = []
-        var glueNext = false
-        for token in tokens {
-            let word = token.core.lowercased()
-            if word == "slash" || word == "backslash", !out.isEmpty, out[out.count - 1].trailing.isEmpty {
-                let last = out[out.count - 1]
-                let root = ["tilde", "tilda"].contains(last.core.lowercased()) ? "~" : last.text
-                out[out.count - 1] = Token(root + (word == "slash" ? "/" : "\\"))
-                glueNext = true
-            } else if glueNext {
-                out[out.count - 1] = Token(out[out.count - 1].text + token.text)
-                glueNext = false
+        var i = 0
+        while i < tokens.count {
+            var path = tokens[i].text
+            var j = i
+            var separators = 0
+            // Extend while "<segment> slash <segment>" continues and no punctuation breaks it.
+            while j + 2 < tokens.count, tokens[j].trailing.isEmpty, let sep = separator(tokens[j + 1]) {
+                path += sep + tokens[j + 2].text
+                separators += 1
+                j += 2
+            }
+            let first = tokens[i].core.lowercased()
+            let rooted = first.count == 1 || first == "tilde" || first == "tilda"
+            if separators >= 2 || (separators == 1 && rooted) {
+                if first == "tilde" || first == "tilda" { path = tokens[i].leading + "~" + path.dropFirst(tokens[i].text.count) }
+                out.append(Token(path))
+                i = j + 1
             } else {
-                out.append(token)
+                out.append(tokens[i])
+                i += 1
             }
         }
         return out
@@ -117,8 +135,9 @@ struct Vocabulary {
                 context.insert(line.lowercased())
                 continue
             }
-            let parts = line.split(separator: ":", maxSplits: 1)
+            let parts = line.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
             let spelling = parts[0].trimmingCharacters(in: .whitespaces)
+            guard !spelling.isEmpty else { continue }  // e.g. a stray ":" line
             let aliases = parts.count > 1 ? parts[1].split(separator: ",").map { Self.letters(String($0)) } : []
             terms.append(
                 Term(
@@ -217,10 +236,11 @@ struct Vocabulary {
 
     private static var wordCache: [String: Bool] = [:]
 
-    /// Whether `word` is ordinary English. The spell checker accepts abbreviations ("ip", "dns"), so
-    /// for acronym terms the short words of the system dictionary decide instead ("ai", "rag" are words).
+    /// Whether `word` is ordinary English. The spell checker accepts short abbreviations ("ip", "dns"),
+    /// so for acronym terms short words are checked against the system dictionary instead ("ai" and
+    /// "rag" are words). Longer words ("nickel" for NCCL) go to the spell checker as usual.
     static func isEnglishWord(_ word: String, comparedTo term: Term) -> Bool {
-        if term.spelling.filter(\.isUppercase).count >= 2 {
+        if term.spelling.filter(\.isUppercase).count >= 2, word.count <= 5 {
             return shortDictionaryWords.contains(word.lowercased())
         }
         return isEnglishWord(word)

@@ -36,7 +36,11 @@ final class AppController {
         hotKeys.register(keyCode: kVK_ANSI_D, modifiers: optionKey) { [unowned self] phase in
             dHeld = phase == .pressed
             switch phase {
-            case .pressed: begin()
+            case .pressed:
+                // Grabbing the combo again inside the grace period keeps the recording going.
+                pendingEnd?.cancel()
+                pendingEnd = nil
+                begin()
             case .released: scheduleEnd()
             }
         }
