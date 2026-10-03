@@ -2,15 +2,16 @@
 
 Push-to-talk dictation for macOS that runs entirely on your Mac. Hold a shortcut, speak, let go, and the text is pasted into whatever field has focus. No network, no cloud, no app window.
 
-- **⌥D** (hold): English (India)
-- **⌥⇧D** (hold): Hindi
+- **⌥D** (hold): dictate, release to paste
 - **Esc** while holding: discard
 
-Transcription uses Apple's on-device `SpeechAnalyzer` / `SpeechTranscriber`. The UI is a small AppKit panel with a live waveform, shown only while you hold the shortcut. When idle Babble uses no CPU and keeps the mic off.
+English and Hindi recognizers (Apple's on-device `SpeechTranscriber`, `en_IN` and `hi_IN`) run side by side on each recording and the more confident transcript wins, so English and Hinglish both work from one shortcut. Hindi comes out in Latin letters. Apple's on-device Foundation Model then tidies punctuation, capitalization and filler words; if its edit drifts from what was said, the raw transcript is used instead.
+
+The UI is a small AppKit panel with a live waveform, shown only while you hold the shortcut. When idle Babble uses no CPU and keeps the mic off.
 
 ## Requirements
 
-macOS 27, Xcode 27 command line tools.
+macOS 27 with Apple Intelligence enabled (for cleanup), Xcode 27 command line tools.
 
 ## Install
 
@@ -25,7 +26,7 @@ On first launch, grant **Microphone** and **Accessibility** (System Settings > P
 
 ```sh
 say -o /tmp/t.wav --data-format=LEI16@16000 "hello from babble"
-.build/release/Babble --transcribe /tmp/t.wav            # add --hindi for Hindi
+.build/release/Babble --transcribe /tmp/t.wav   # prints raw and cleaned text
 ```
 
 ## Logs

@@ -3,14 +3,25 @@ import AppKit
 import Carbon.HIToolbox
 import ServiceManagement
 
-/// Push-to-talk: hold ⌥D (English) or ⌥⇧D (Hindi), release to paste, Esc to discard.
+/// Push-to-talk: hold ⌥D to dictate, release to paste, Esc while holding to discard.
 @MainActor
 final class AppController {
+    private struct Recording {
+        let dictation: Dictation
+        let startedAt: ContinuousClock.Instant
+        let capture: Task<Void, Error>
+        let escapeHotKeys: [UInt32]
+        let releaseWatch: Task<Void, Never>
+    }
+
     private enum State {
         case idle
-        case recording(Dictation, escapeHotKey: UInt32, releaseWatch: Task<Void, Never>)
+        case recording(Recording)
         case finishing
     }
+
+    /// Presses shorter than this are treated as accidental taps and discarded.
+    private static let minimumHold = Duration.milliseconds(300)
 
     private let hotKeys = HotKeys()
     private let microphone = Microphone()
@@ -18,29 +29,20 @@ final class AppController {
     private var state = State.idle
 
     init() {
-        bind(.english, modifiers: optionKey)
-        bind(.hindi, modifiers: optionKey | shiftKey)
-        Task { await setUp() }
-    }
-
-    private func bind(_ language: Language, modifiers: Int) {
-        hotKeys.register(keyCode: kVK_ANSI_D, modifiers: modifiers) { [unowned self] phase in
+        hotKeys.register(keyCode: kVK_ANSI_D, modifiers: optionKey) { [unowned self] phase in
             switch phase {
-            case .pressed: begin(language)
+            case .pressed: begin()
             case .released: Task { await end() }
             }
         }
+        Task { await setUp() }
     }
 
     private func setUp() async {
         _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
         _ = await AVCaptureDevice.requestAccess(for: .audio)
         registerLoginItem()
-        for language in Language.allCases {
-            do { try await language.prepare() } catch {
-                log.error("Preparing \(language.locale.identifier) failed: \(error)")
-            }
-        }
+        do { try await Transcribers.prepare() } catch { log.error("Preparing speech models failed: \(error)") }
     }
 
     /// Start at login, but only for the installed copy so dev builds don't register themselves.
@@ -50,32 +52,30 @@ final class AppController {
         do { try SMAppService.mainApp.register() } catch { log.error("Login item: \(error)") }
     }
 
-    private func begin(_ language: Language) {
+    private func begin() {
         guard case .idle = state else { return }
-        let dictation = Dictation(language: language)
-        let pill = pill
-        do {
-            try microphone.start(
-                onAudio: { dictation.append($0) },
-                onLevel: { levels in Task { @MainActor in pill.push(levels) } })
-        } catch {
-            log.error("Mic failed to start: \(error)")
-            Task { await dictation.cancel() }
-            return
+        let dictation = Dictation()
+        let microphone = microphone
+        let capture = Task { try await microphone.start(into: dictation) }
+        pill.show { microphone.level }
+        // Option is still held while recording, so Esc arrives as ⌥Esc; catch both forms.
+        let escapeHotKeys = [0, optionKey].map { modifiers in
+            hotKeys.register(keyCode: kVK_Escape, modifiers: modifiers) { [unowned self] phase in
+                if phase == .pressed { Task { await end(discard: true) } }
+            }
         }
-        pill.show()
-        let escape = hotKeys.register(keyCode: kVK_Escape, modifiers: 0) { [unowned self] phase in
-            if phase == .pressed { Task { await cancel() } }
-        }
-        state = .recording(dictation, escapeHotKey: escape, releaseWatch: watchForRelease())
+        state = .recording(
+            Recording(
+                dictation: dictation, startedAt: .now, capture: capture,
+                escapeHotKeys: escapeHotKeys, releaseWatch: watchOptionRelease()))
     }
 
-    /// Backstop for a missed Carbon release event: stop once D is no longer physically held.
-    private func watchForRelease() -> Task<Void, Never> {
+    /// Carbon reports D's release, but not Option's; stop as soon as Option is let go too.
+    private func watchOptionRelease() -> Task<Void, Never> {
         Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(80))
-                if !CGEventSource.keyState(.combinedSessionState, key: CGKeyCode(kVK_ANSI_D)) {
+                try? await Task.sleep(for: .milliseconds(50))
+                if !NSEvent.modifierFlags.contains(.option) {
                     await self?.end()
                     return
                 }
@@ -83,34 +83,31 @@ final class AppController {
         }
     }
 
-    /// Takes the active dictation out of `.recording`, releasing the mic and Esc binding.
-    private func takeRecording() -> Dictation? {
-        guard case let .recording(dictation, escape, releaseWatch) = state else { return nil }
-        releaseWatch.cancel()
-        hotKeys.unregister(escape)
+    private func end(discard: Bool = false) async {
+        guard case let .recording(recording) = state else { return }
+        state = .finishing
+        // Measure the hold before awaiting mic startup/teardown, which can take a while.
+        let tooShort = ContinuousClock.now - recording.startedAt < Self.minimumHold
+        recording.releaseWatch.cancel()
+        recording.escapeHotKeys.forEach(hotKeys.unregister)
+
+        let captureResult = await recording.capture.result
         microphone.stop()
-        return dictation
-    }
 
-    private func end() async {
-        guard let dictation = takeRecording() else { return }
-        state = .finishing
-        pill.showProcessing()
-        let text: String
-        do { text = try await dictation.finish() } catch {
-            log.error("Transcription failed: \(error)")
-            text = ""
+        if discard || tooShort {
+            pill.hide()
+            await recording.dictation.cancel()
+        } else if case let .failure(error) = captureResult {
+            log.error("Mic failed to start: \(error)")
+            pill.hide()
+            await recording.dictation.cancel()
+        } else {
+            pill.showProcessing()
+            let raw = (try? await recording.dictation.finish()) ?? ""
+            let text = raw.isEmpty ? raw : await Cleanup.run(raw)
+            pill.hide()
+            if !text.isEmpty { await Paster.paste(text) }
         }
-        pill.hide()
-        if !text.isEmpty { await Paster.paste(text) }
-        state = .idle
-    }
-
-    private func cancel() async {
-        guard let dictation = takeRecording() else { return }
-        state = .finishing
-        pill.hide()
-        await dictation.cancel()
         state = .idle
     }
 }

@@ -1,40 +1,45 @@
 import AVFoundation
+import Speech
 
-/// Mic capture for one press at a time. The engine only runs while recording,
-/// so the system mic indicator is off whenever Babble is idle.
+/// Mic capture for one press at a time, via Speech's capture provider (which also converts to the
+/// analyzer's format). The session only runs while recording, so the mic indicator is off when idle.
 @MainActor
 final class Microphone {
-    private let engine = AVAudioEngine()
+    enum Failure: Error { case noInputDevice }
 
-    /// Starts streaming copies of mic buffers to `onAudio` and loudness (0...1) to `onLevel`, both off the main thread.
-    func start(onAudio: @escaping @Sendable (AudioChunk) -> Void, onLevel: @escaping @Sendable ([Float]) -> Void) throws {
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, time in
-            guard let copy = buffer.copy() as? AVAudioPCMBuffer else { return }
-            onAudio(AudioChunk(buffer: copy, time: time))
-            onLevel(levels(of: buffer))
+    private var provider: CaptureInputSequenceProvider?
+    private var forwarding: Task<Void, Never>?
+
+    /// Starts capturing from the default input device and streams audio into `dictation`.
+    func start(into dictation: Dictation) async throws {
+        guard let device = AVCaptureDevice.default(for: .audio) else { throw Failure.noInputDevice }
+        let provider = try await CaptureInputSequenceProvider.providerWithSession(
+            from: device, compatibleWith: dictation.modules, priority: .userInitiated)
+        self.provider = provider
+        forwarding = Task {
+            do {
+                for try await input in provider.analyzerInputs { dictation.append(input) }
+            } catch {
+                log.error("Capture stream failed: \(error)")
+            }
         }
-        engine.prepare()
-        try engine.start()
+        nonisolated(unsafe) let session = provider.captureSession  // AVCaptureSession is thread-safe but not marked Sendable
+        if !session.isRunning {
+            // startRunning blocks while the device spins up; keep it off the main thread.
+            await Task.detached { session.startRunning() }.value
+        }
+    }
+
+    /// Current input loudness in 0...1, read from the capture connection's meter.
+    var level: Float {
+        guard let channel = provider?.captureAudioDataOutput.connections.first?.audioChannels.first else { return 0 }
+        return min(max((channel.averagePowerLevel + 50) / 45, 0), 1)
     }
 
     func stop() {
-        engine.stop()
-        engine.inputNode.removeTap(onBus: 0)
-    }
-}
-
-/// Splits a buffer into ~10ms windows and maps each window's RMS to 0...1 on a -50...-5 dB scale.
-private func levels(of buffer: AVAudioPCMBuffer) -> [Float] {
-    guard let samples = buffer.floatChannelData?[0] else { return [] }
-    let frames = Int(buffer.frameLength)
-    let window = max(Int(buffer.format.sampleRate / 100), 1)
-    return stride(from: 0, to: frames, by: window).map { start in
-        let end = min(start + window, frames)
-        var sum: Float = 0
-        for i in start..<end { sum += samples[i] * samples[i] }
-        let db = 20 * log10(max(sqrt(sum / Float(end - start)), 1e-6))
-        return min(max((db + 50) / 45, 0), 1)
+        provider?.captureSession.stopRunning()
+        forwarding?.cancel()
+        provider = nil
+        forwarding = nil
     }
 }

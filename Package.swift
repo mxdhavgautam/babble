@@ -5,6 +5,7 @@ let package = Package(
     name: "Babble",
     platforms: [.macOS("27.0")],
     targets: [
-        .executableTarget(name: "Babble", path: "Sources/Babble")
+        .executableTarget(name: "Babble", path: "Sources/Babble"),
+        .testTarget(name: "BabbleTests", dependencies: ["Babble"]),
     ]
 )

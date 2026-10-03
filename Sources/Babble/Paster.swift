@@ -16,6 +16,8 @@ enum Paster {
         let ours = pasteboard.changeCount
 
         await waitForModifiersReleased()
+        // Something else took the clipboard while we waited; pasting now would paste their content.
+        guard pasteboard.changeCount == ours else { return }
         pressCommandV()
 
         try? await Task.sleep(for: .milliseconds(300))

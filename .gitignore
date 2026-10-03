@@ -5,3 +5,4 @@ build/
 *.cer
 .DS_Store
 .swiftpm/
+.claude/
