@@ -431,7 +431,7 @@ TUI: tooey
 IDE
 API
 JSON: jason
-JSONL: jason l, json l
+JSONL: jason l, json l, jcl
 YAML: yamel, yammel
 OAuth: o auth, oh auth
 JWT

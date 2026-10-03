@@ -22,6 +22,18 @@ Allow mic access when it asks, then turn on Babble under System Settings > Priva
 
 If it misses you when you talk softly, bump your input level in System Settings > Sound. ~55% is a good spot.
 
+## History
+
+`install.sh` asks once whether to keep a history of your dictations. If yes, each one is appended to `~/Library/Application Support/Babble/history.jsonl`: time, raw and polished text, which recognizer won and its confidence, how long you held the key, and the app you were typing into. Text only, never audio.
+
+```sh
+defaults write dev.babble.app keepHistory -bool true   # or false; applies to the next dictation
+```
+
+## Uninstall
+
+`./scripts/uninstall.sh` removes the app, its settings, permissions, vocabulary and history.
+
 ## Vocabulary
 
 Add your own words to `~/Library/Application Support/Babble/vocabulary.txt`:

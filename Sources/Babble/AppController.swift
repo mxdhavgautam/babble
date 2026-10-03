@@ -124,14 +124,24 @@ final class AppController {
             await recording.dictation.cancel()
         } else {
             pill.showProcessing()
-            var raw = ""
-            do { raw = try await recording.dictation.finish() } catch { log.error("Transcription failed: \(error)") }
+            let app = History.frontmostApp
+            var transcript = Dictation.Transcript()
+            do { transcript = try await recording.dictation.finish() } catch {
+                log.error("Transcription failed: \(error)")
+            }
+            let raw = transcript.text
             let text = raw.isEmpty ? raw : Polish.apply(raw, vocabulary: .load())
             pill.hide()
             if text.isEmpty {
                 log.info("Nothing heard in \(released - recording.startedAt, privacy: .public)")
             } else {
                 await Paster.paste(text)
+                History.append(
+                    .init(
+                        time: .now, raw: raw, text: text, recognizer: transcript.locale?.identifier ?? "",
+                        confidence: (transcript.confidence * 1000).rounded() / 1000,
+                        heldSeconds: ((released - recording.startedAt) / .milliseconds(10)).rounded() / 100,
+                        app: app))
                 log.info("Pasted \(text.count, privacy: .public) chars \(ContinuousClock.now - released, privacy: .public) after release")
             }
         }

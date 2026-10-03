@@ -12,7 +12,7 @@ if let flag = arguments.firstIndex(of: "--transcribe"), flag + 1 < arguments.cou
     let source = try await AssetInputSequenceProvider.provider(from: asset, compatibleWith: dictation.modules)
     let start = ContinuousClock.now
     for try await input in source.analyzerInputs { dictation.append(input) }
-    let raw = try await dictation.finish()
+    let raw = try await dictation.finish().text
     print("raw:      \(raw)  (\(ContinuousClock.now - start))")
     print("polished: \(Polish.apply(raw, vocabulary: .load()))")
     exit(0)

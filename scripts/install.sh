@@ -16,6 +16,13 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/vocabulary.txt "$APP/Contents/Resources/vocabulary.txt"
 codesign --force --sign "$IDENTITY" "$APP"
 
+# Ask once whether to keep a transcript history (stored in ~/Library/Application Support/Babble).
+if ! defaults read dev.babble.app keepHistory >/dev/null 2>&1; then
+  read -q "?Keep a history of your dictations (text only, never audio)? [y/N] " && KEEP=true || KEEP=false
+  echo
+  defaults write dev.babble.app keepHistory -bool $KEEP
+fi
+
 pkill -x Babble || true
 mkdir -p "$HOME/Applications"
 rm -rf "$DEST"

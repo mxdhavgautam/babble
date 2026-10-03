@@ -42,9 +42,11 @@ final class Dictation: Sendable {
     private let results: [Task<Transcript, Error>]
     private let started: Task<Void, Error>
 
-    private struct Transcript {
+    /// The winning recognizer's output. `locale` is nil when nothing was heard.
+    struct Transcript {
         var text = ""
         var confidence: Double = 0
+        var locale: Locale?
     }
 
     init() {
@@ -53,7 +55,7 @@ final class Dictation: Sendable {
         let (stream, input) = AsyncStream<AnalyzerInput>.makeStream()
         self.input = input
 
-        results = modules.map { transcriber in
+        results = zip(modules, Transcribers.locales).map { transcriber, locale in
             Task {
                 var segments: [String] = []
                 var confidences: [Double] = []
@@ -62,7 +64,8 @@ final class Dictation: Sendable {
                     confidences += result.text.runs.compactMap(\.transcriptionConfidence)
                 }
                 let mean = confidences.isEmpty ? 0 : confidences.reduce(0, +) / Double(confidences.count)
-                return Transcript(text: segments.filter { !$0.isEmpty }.joined(separator: " "), confidence: mean)
+                return Transcript(
+                    text: segments.filter { !$0.isEmpty }.joined(separator: " "), confidence: mean, locale: locale)
             }
         }
         started = Task { [analyzer] in try await analyzer.start(inputSequence: stream) }
@@ -73,14 +76,14 @@ final class Dictation: Sendable {
         input.yield(audio)
     }
 
-    /// Ends input and returns the most confident transcript ("" if nothing was heard).
+    /// Ends input and returns the most confident transcript (empty if nothing was heard).
     /// Gives up after `timeout` so a stalled analyzer can never wedge the app.
-    func finish(timeout: Duration = .seconds(10)) async throws -> String {
+    func finish(timeout: Duration = .seconds(10)) async throws -> Transcript {
         input.finish()
         // The analyzer never completes finalization for an empty stream, so skip it.
         guard received.withLock({ $0 }) else {
             await cancel()
-            return ""
+            return Transcript()
         }
         let watchdog = Task { [self] in
             try await Task.sleep(for: timeout)
@@ -96,7 +99,7 @@ final class Dictation: Sendable {
             log.debug("\(transcript.confidence) \(transcript.text, privacy: .private)")
             if transcript.confidence > best.confidence { best = transcript }
         }
-        return best.text
+        return best
     }
 
     func cancel() async {
