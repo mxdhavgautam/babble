@@ -1,7 +1,8 @@
-import Foundation
+import AppKit
 
 /// Deterministic post-processing of a transcript: vocabulary spellings, spoken path separators
 /// ("c slash users" → "C/users"), and a capitalized first letter. Instant, and never rewords.
+@MainActor
 enum Polish {
     static func apply(_ text: String, vocabulary: Vocabulary) -> String {
         var tokens = text.split(separator: " ").map { Token(String($0)) }
@@ -59,78 +60,189 @@ struct Token {
     }
 }
 
-/// User terms (names, tools, slang) that the recognizer tends to mangle. Lives outside the repo at
-/// ~/Library/Application Support/Babble/vocabulary.txt, one term per line, optionally followed by
-/// known mishearings: `Badiya: bariya, badhiya`. Lines starting with # are comments.
+/// Terms the recognizer tends to mangle: names, tools, models, slang. Babble ships a general AI and
+/// developer list in the app bundle; personal additions go in
+/// ~/Library/Application Support/Babble/vocabulary.txt. Format, one per line:
+///
+///     Term
+///     Term: known mishearing, another       (e.g. `Grok: groc`)
+///     [context]                             (following lines are context words, never replaced)
+///
+/// Replacing a real English word ("Seoul" → Sol, "convex" → Convex) only happens when the transcript
+/// is clearly technical: it contains another vocabulary term or a context word. Words that aren't
+/// ordinary English ("groc" → Grok) are always replaced.
+@MainActor
 struct Vocabulary {
     struct Term {
         let spelling: String
-        let letters: Set<String>  // spelling and aliases, lowercased letters only
-        let sound: String  // rough phonetic skeleton of the spelling
+        let letters: String  // lowercased letters and digits, so "Ai2" never matches a spoken "AI"
+        let aliases: Set<String>
+        let sound: String
     }
 
     let terms: [Term]
+    let contextWords: Set<String>
 
-    static let fileURL = URL.applicationSupportDirectory.appending(path: "Babble/vocabulary.txt")
+    static let userFileURL = URL.applicationSupportDirectory.appending(path: "Babble/vocabulary.txt")
+    static let bundledFileURL = Bundle.main.url(forResource: "vocabulary", withExtension: "txt")
 
+    private static var cache: (stamp: [Date?], vocabulary: Vocabulary)?
+
+    /// Bundled list plus the user's file; reparsed only when either file changes.
     static func load() -> Vocabulary {
-        guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { return Vocabulary(lines: []) }
-        return Vocabulary(lines: text.split(whereSeparator: \.isNewline).map(String.init))
+        let urls = [bundledFileURL, userFileURL].compactMap(\.self)
+        let stamp = urls.map { (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+        if let cache, cache.stamp == stamp { return cache.vocabulary }
+        let lines = urls.flatMap { url in
+            ((try? String(contentsOf: url, encoding: .utf8)) ?? "").split(whereSeparator: \.isNewline).map(String.init) + ["[terms]"]
+        }
+        let vocabulary = Vocabulary(lines: lines)
+        _ = shortDictionaryWords.count  // load now rather than during someone's first dictation
+        cache = (stamp, vocabulary)
+        return vocabulary
     }
 
     init(lines: [String]) {
-        terms = lines.compactMap { line in
+        var terms: [Term] = []
+        var context: Set<String> = []
+        var inContext = false
+        for line in lines {
             let line = line.trimmingCharacters(in: .whitespaces)
-            guard !line.isEmpty, !line.hasPrefix("#") else { return nil }
+            if line.lowercased() == "[context]" || line.lowercased() == "[terms]" {
+                inContext = line.lowercased() == "[context]"
+                continue
+            }
+            guard !line.isEmpty, !line.hasPrefix("#") else { continue }
+            if inContext {
+                context.insert(line.lowercased())
+                continue
+            }
             let parts = line.split(separator: ":", maxSplits: 1)
             let spelling = parts[0].trimmingCharacters(in: .whitespaces)
-            let aliases = parts.count > 1 ? parts[1].split(separator: ",").map(String.init) : []
-            return Term(
-                spelling: spelling,
-                letters: Set(([spelling] + aliases).map(Self.letters)),
-                sound: Self.sound(of: spelling))
+            let aliases = parts.count > 1 ? parts[1].split(separator: ",").map { Self.letters(String($0)) } : []
+            terms.append(
+                Term(
+                    spelling: spelling, letters: spelling.lowercased().filter { $0.isLetter || $0.isNumber }, aliases: Set(aliases.filter { !$0.isEmpty }),
+                    sound: Self.sound(of: spelling)))
         }
+        self.terms = terms
+        contextWords = context
+    }
+
+    /// How sure a match is, which decides whether it needs the sentence to look technical.
+    private enum Confidence {
+        case certain  // not ordinary words: "groc" → Grok. Always applied, and signals context.
+        case likely  // "tail scale" → Tailscale, "cloudflur" → Cloudflare. Needs context, and signals it.
+        case contextual  // one ordinary word: "convex" → Convex, "Seoul" → Sol. Needs context.
+    }
+
+    private struct Match {
+        let range: Range<Int>
+        let term: Term
+        let confidence: Confidence
     }
 
     /// Replaces runs of 1-3 words that spell, or sound like, a term. Longest runs win.
     func respell(_ tokens: [Token]) -> [Token] {
         guard !terms.isEmpty else { return tokens }
-        var out: [Token] = []
+        var matches: [Match] = []
         var i = 0
-        scan: while i < tokens.count {
-            for length in stride(from: min(3, tokens.count - i), through: 1, by: -1) {
-                let run = tokens[i..<(i + length)]
-                // A comma or period inside the run means separate words, not one term.
-                guard run.dropLast().allSatisfy({ $0.trailing.isEmpty }),
-                    let term = match(run.map(\.core).joined())
-                else { continue }
-                out.append(Token(leading: run.first!.leading, core: term.spelling, trailing: run.last!.trailing))
-                i += length
-                continue scan
+        while i < tokens.count {
+            let found = stride(from: min(3, tokens.count - i), through: 1, by: -1).lazy.compactMap { length in
+                match(tokens[i..<(i + length)])
+            }.first
+            if let found {
+                matches.append(found)
+                i = found.range.upperBound
+            } else {
+                i += 1
             }
-            out.append(tokens[i])
-            i += 1
         }
-        return out
+
+        let matchedIndices = Set(matches.flatMap { Array($0.range) })
+        let hasSignal = matches.contains { $0.confidence == .certain }
+            || tokens.indices.contains { !matchedIndices.contains($0) && isContextSignal(tokens[$0]) }
+        func applies(_ match: Match) -> Bool {
+            match.confidence == .certain || hasSignal
+                || matches.contains { $0.range != match.range && $0.confidence != .contextual }
+        }
+
+        var out: [Token] = []
+        var index = 0
+        for match in matches where applies(match) {
+            out += tokens[index..<match.range.lowerBound]
+            let run = tokens[match.range]
+            out.append(Token(leading: run.first!.leading, core: match.term.spelling, trailing: run.last!.trailing))
+            index = match.range.upperBound
+        }
+        return out + tokens[index...]
     }
 
-    private func match(_ spoken: String) -> Term? {
+    private func match(_ run: ArraySlice<Token>) -> Match? {
+        // A comma or period inside the run means separate words, not one term.
+        guard run.dropLast().allSatisfy({ $0.trailing.isEmpty }) else { return nil }
+        let spoken = run.map(\.core).joined()
         let letters = Self.letters(spoken)
         guard !letters.isEmpty, letters.count == spoken.count else { return nil }  // words only, no digits
-        if let exact = terms.first(where: { $0.letters.contains(letters) }) { return exact }
-        // Sound-alike matching only for longer terms, where accidental collisions are rare.
-        guard letters.count >= 5 else { return nil }
-        let sound = Self.sound(of: letters)
-        return terms.first { term in
-            term.sound.count >= 4
-                && (term.sound == sound || (term.sound.count >= 5 && Self.isOneEditApart(term.sound, sound)))
+        let range = run.startIndex..<run.endIndex
+        func confidence(for term: Term) -> Confidence {
+            guard run.allSatisfy({ Self.isEnglishWord($0.core, comparedTo: term) }) else { return .certain }
+            return run.count > 1 ? .likely : .contextual
         }
+
+        if let term = terms.first(where: { $0.letters == letters }) {
+            guard spoken != term.spelling else { return nil }
+            return Match(range: range, term: term, confidence: confidence(for: term))
+        }
+        if let term = terms.first(where: { $0.aliases.contains(letters) }) {
+            return Match(range: range, term: term, confidence: confidence(for: term))
+        }
+        // Sound-alike guesses: only for single non-words ("cloudflur"), never for correctly spelled
+        // English like "request" or "merge", and only against longer terms.
+        guard run.count == 1, letters.count >= 5, !Self.isEnglishWord(run.first!.core) else { return nil }
+        let sound = Self.sound(of: letters)
+        let term = terms.first { term in
+            term.sound.count >= 4
+                && (term.sound == sound || (term.sound.count >= 6 && Self.isOneEditApart(term.sound, sound)))
+        }
+        return term.map { Match(range: range, term: $0, confidence: .likely) }
     }
+
+    /// A context word, or a term already written exactly as spelled ("GPT6" counts for GPT).
+    private func isContextSignal(_ token: Token) -> Bool {
+        let letters = token.core.filter(\.isLetter)
+        return contextWords.contains(token.core.lowercased())
+            || (!letters.isEmpty && terms.contains { $0.spelling.filter(\.isLetter) == letters })
+    }
+
+    private static var wordCache: [String: Bool] = [:]
+
+    /// Whether `word` is ordinary English. The spell checker accepts abbreviations ("ip", "dns"), so
+    /// for acronym terms the short words of the system dictionary decide instead ("ai", "rag" are words).
+    static func isEnglishWord(_ word: String, comparedTo term: Term) -> Bool {
+        if term.spelling.filter(\.isUppercase).count >= 2 {
+            return shortDictionaryWords.contains(word.lowercased())
+        }
+        return isEnglishWord(word)
+    }
+
+    static func isEnglishWord(_ word: String) -> Bool {
+        if let known = wordCache[word] { return known }
+        let miss = NSSpellChecker.shared.checkSpelling(
+            of: word, startingAt: 0, language: "en", wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+        let isWord = miss.location == NSNotFound
+        wordCache[word] = isWord
+        return isWord
+    }
+
+    private static let shortDictionaryWords: Set<String> = {
+        let text = (try? String(contentsOfFile: "/usr/share/dict/words", encoding: .utf8)) ?? ""
+        return Set(text.split(whereSeparator: \.isNewline).lazy.filter { $0.count <= 5 }.map { $0.lowercased() })
+    }()
 
     static func letters(_ text: String) -> String {
         text.lowercased().filter(\.isLetter)
     }
-
     /// Consonant skeleton with similar sounds merged: "Hetzner" and "head centre" → "htsnr"/"htsntr",
     /// "Behenchod" and "bhenshod" → "pnst". Keeps the first letter so short words stay distinct.
     static func sound(of text: String) -> String {

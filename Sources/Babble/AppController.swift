@@ -47,6 +47,7 @@ final class AppController {
         _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
         _ = await AVCaptureDevice.requestAccess(for: .audio)
         registerLoginItem()
+        _ = Vocabulary.load()  // parse before the first press
         do { try await Transcribers.prepare() } catch { log.error("Preparing speech models failed: \(error)") }
     }
 

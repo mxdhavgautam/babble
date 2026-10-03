@@ -5,12 +5,12 @@ import QuartzCore
 /// and only animates while listening.
 @MainActor
 final class Pill {
-    private static let size = NSSize(width: 66, height: 26)
+    private static let size = NSSize(width: 66, height: 28)
     private static let barCount = 7
     private static let barWidth: CGFloat = 3
     private static let barGap: CGFloat = 3
     private static let minBarHeight: CGFloat = 3
-    private static let maxBarHeight: CGFloat = 15
+    private static let maxBarHeight: CGFloat = 17
 
     /// Bell-curve weights: the middle bars react most, the edges least.
     private static let weights: [Double] = (0..<barCount).map { i in
@@ -22,6 +22,7 @@ final class Pill {
     private struct Bar {
         let layer: CALayer
         let weight: Double
+        let gate: Double  // input level a bar ignores: 0 in the middle, high at the edges
         let stiffness: Double  // stiffer in the middle, so those bars snap up fastest
         let wobbleSpeed: Double  // per-bar drift so loud passages don't look like a flat block
         let wobblePhase: Double
@@ -67,7 +68,7 @@ final class Pill {
             layer.frame.size.width = Self.barWidth
             root.addSublayer(layer)
             return Bar(
-                layer: layer, weight: weight, stiffness: 120 + 260 * weight,
+                layer: layer, weight: weight, gate: 0.55 * (1 - weight) / 0.7, stiffness: 90 + 290 * weight,
                 wobbleSpeed: 5 + Double(i * 7 % 5), wobblePhase: Double(i) * 1.9)
         }
     }
@@ -109,11 +110,15 @@ final class Pill {
         envelope += (input - envelope) * (input > envelope ? 0.6 : 0.12)
 
         for i in bars.indices {
-            let wobble = 0.8 + 0.2 * sin(link.timestamp * bars[i].wobbleSpeed + bars[i].wobblePhase)
-            let target = min(envelope * bars[i].weight * wobble, 1)
-            // Under-damped spring: a little overshoot gives the bars their bounce.
-            let stiffness = bars[i].stiffness
-            let damping = 2 * 0.55 * stiffness.squareRoot()
+            let bar = bars[i]
+            let wobble = 0.8 + 0.2 * sin(link.timestamp * bar.wobbleSpeed + bar.wobblePhase)
+            // Edge bars stay put until the input clears their gate, so they only jump for loud audio.
+            let drive = max(0, envelope - bar.gate) / (1 - bar.gate)
+            let target = min(drive * bar.weight * wobble, 1)
+            // Bounce grows with how hard a bar is driven: calm and damped when quiet, springy when loud.
+            let dampingRatio = 0.95 - 0.5 * drive
+            let stiffness = bar.stiffness
+            let damping = 2 * dampingRatio * stiffness.squareRoot()
             bars[i].velocity += (stiffness * (target - bars[i].height) - damping * bars[i].velocity) * dt
             bars[i].height = max(0, bars[i].height + bars[i].velocity * dt)
         }

@@ -1,0 +1,482 @@
+# Babble vocabulary: names and jargon AI engineers say out loud, so the recognizer's spelling gets fixed.
+# One term per line, optionally followed by known mishearings:  Term: misheard, another
+# Ordinary English words ("soul" → Sol) are only replaced when the sentence is technical.
+# Personal additions go in ~/Library/Application Support/Babble/vocabulary.txt.
+
+# Anthropic models and products
+Claude: clawed, claud, clod
+Anthropic: anthropik
+Opus
+Sonnet
+Haiku: hi coo
+Fable
+Mythos: mithos, my thos
+Claude Code
+Claude Desktop
+Claude Cowork: claude co work
+Claude.ai
+CLAUDE.md: claude md, claude dot md
+AGENTS.md: agents md, agents dot md
+
+# OpenAI models and products
+OpenAI: open ai, open a i
+ChatGPT: chat gpt, chat g p t, chat gbt
+GPT: g p t, gbt
+Sol: soul, seoul
+Luna: lunah
+Astra
+Codex
+Sora
+DALL-E: dolly, dali
+Whisper
+
+# Google models and products
+Google DeepMind: google deep mind
+DeepMind: deep mind
+Gemini: gemeni, jemini
+Gemma: jemma
+Flash-Lite: flash light
+Veo: vayo, veyo
+Imagen
+Nano Banana
+NotebookLM: notebook lm
+AI Studio
+Vertex AI
+Gemini CLI
+Jules
+Antigravity
+TPU
+
+# xAI and Meta
+xAI: x ai, ex ai
+Grok: groc, grock, grog, grop
+Grokipedia: grok ipedia
+Meta
+Llama: lama
+Muse Spark: muse sparks
+Meta Superintelligence Labs
+MSL
+
+# Open model families and their labs
+Qwen: quinn, quen, kwen
+Alibaba
+DeepSeek: deep seek, deepsick
+Kimi: kimmy, kimmie
+Moonshot: moon shot
+GLM: g l m
+Z.ai: z ai, zee ai
+Zhipu: jipu, zhi pu
+MiniMax: mini max
+Mistral: mistrel, mystral
+Mistral Large
+Devstral: dev stral
+Codestral: code stral
+Magistral
+MiMo: mee mo
+Xiaomi: shao mi, shiaomi
+Nemotron: nemo tron
+Phi
+OLMo: ole mo
+Ai2
+ByteDance: byte dance
+Tencent: ten cent
+Hunyuan: hun yuan
+Baidu: by doo
+ERNIE
+StepFun: step fun
+FLUX
+Black Forest Labs
+Stable Diffusion
+Midjourney: mid journey
+ElevenLabs: eleven labs
+Cohere: co here
+Liquid AI
+Nous Research: noose research
+Mamba
+RWKV: r w k v
+
+# AI labs, companies and people-adjacent orgs
+Thinking Machines
+SSI
+Safe Superintelligence
+Reflection AI
+Cognition
+Devin: devon
+Perplexity
+Hugging Face
+Nvidia: n vidia, envidia, invidia
+Cerebras: sarah bras, cerebrus
+Groq
+SambaNova: samba nova
+Together AI
+Fireworks AI
+Baseten: base ten
+Modal
+Replicate
+OpenRouter: open router
+CoreWeave: core weave
+Scale AI
+Surge AI
+Mercor: mercore
+Character AI
+Sakana: sakhana
+Prime Intellect
+Microsoft
+Azure: azur
+Amazon Bedrock
+AWS
+GCP
+Apple Intelligence
+Siri
+TSMC
+AMD
+METR
+Epoch AI
+Artificial Analysis
+LMArena: lm arena, l m arena
+Latent Space
+Dwarkesh: dwarkish, dwar kesh
+
+# People
+Sam Altman: sam altmann
+Dario Amodei: dario amo day, dario amodey
+Demis Hassabis: demis hasabis
+Andrej Karpathy: andre karpathy, carpathy, karpathi
+Karpathy: carpathy, karpathi
+Ilya Sutskever: ilya sutskiver, sutskiver
+Mira Murati: mira morati
+Jensen Huang: jensen hwang
+Greg Brockman: greg brockmann
+Yann LeCun: yan lecun, lacoon
+Jeff Dean
+Noam Brown
+Noam Shazeer: noam shazir
+Mustafa Suleyman: mustafa suleiman
+Alexandr Wang
+Boris Cherny: boris cherney
+Simon Willison
+swyx: swix, swicks
+Theo
+Lex Fridman: lex friedman
+Zuckerberg: zuckerburg
+Elon Musk
+Satya Nadella
+Sundar Pichai: sundar pichay
+Chris Olah: chris ola
+
+# Coding agents and IDEs
+Cursor
+Windsurf: wind surf
+Devin Desktop
+T3 Code: t three code, tea three code
+T3 Chat: t three chat, tea three chat
+GitHub Copilot
+Cline: klein, kline
+Roo Code: rue code
+Kilo Code
+Aider: aid her
+OpenCode: open code
+Zed
+VS Code: v s code, vscode
+JetBrains: jet brains
+Xcode: x code
+Neovim: neo vim
+tmux: t mux, tee mux
+Ghostty: ghosty
+Warp
+Replit: replet, rep lit
+Lovable
+v0: v zero, vee zero
+Kiro: kero
+Augment Code
+Sourcegraph: source graph
+Raycast: ray cast
+Excalidraw: excali draw
+
+# ML frameworks, training and inference
+PyTorch: pie torch, pi torch
+JAX: jacks
+TensorFlow: tensor flow
+Keras: kerris
+NumPy: numb pie, num pie
+SciPy: sci pie
+scikit-learn: sci kit learn, sky kit learn, scikit learn
+Polars
+Transformers
+Diffusers
+Safetensors: safe tensors
+TRL: t r l
+PEFT
+Unsloth: un sloth
+Axolotl: axolotyl
+DeepSpeed: deep speed
+Megatron: mega tron
+FSDP: f s d p
+FlashAttention: flash attention
+vLLM: v llm, vee llm, v l l m
+SGLang: sg lang, s g lang
+TensorRT: tensor rt, tensor r t
+TensorRT-LLM: tensor rt llm
+Triton
+llama.cpp: llama cpp, llama c p p, llama dot cpp
+Ollama: o llama, oh llama
+LM Studio: l m studio
+MLX: m l x
+GGUF: g g u f
+ONNX: onyx
+CUDA: cooda, kuda
+ROCm: rock m, rockem
+cuDNN: cu dnn
+NCCL: nickel
+Kaggle: kaggel
+Jupyter: jupiter
+Colab: co lab
+Gradio: grad io
+Streamlit: stream lit
+Weights & Biases: weights and biases
+W&B: w and b
+wandb: wand b
+MLflow: ml flow
+TensorBoard: tensor board
+
+# Agent and LLM app frameworks
+LangChain: lang chain
+LangGraph: lang graph
+LangSmith: lang smith
+Langfuse: lang fuse
+LlamaIndex: llama index
+DSPy: dee spy, d s p y
+CrewAI: crew ai
+AutoGen: auto gen
+Pydantic: pi dantic
+Pydantic AI
+FastAPI: fast api
+AI SDK
+Agents SDK
+Claude Agent SDK
+Mastra
+Braintrust: brain trust
+Model Context Protocol
+A2A: a two a, a to a
+OpenAPI
+Pinecone: pine cone
+Weaviate: weave iate, weviate
+Qdrant: q drant
+pgvector: pg vector, p g vector
+Milvus
+LanceDB: lance db
+turbopuffer: turbo puffer
+Firecrawl: fire crawl
+Tavily: tavilly
+Browserbase: browser base
+Playwright: play write, playwrite
+Puppeteer
+Stagehand: stage hand
+
+# Dev stack and infra
+Vercel: versel, vercell, vursel
+Convex
+Supabase: supa base, super base
+PlanetScale: planet scale
+Tailscale: tail scale
+Tailnet: tail net, tail nut
+Cloudflare: cloud flare, cloud flur, cloudflur
+Hetzner: hetsner, het sner, head centre, head center
+IP
+DNS
+WorkOS: work os, work o s
+Clerk
+pnpm: p n p m, pee npm
+npm: n p m
+Bun
+Node.js: node js
+Deno: dino
+TypeScript: type script
+JavaScript: java script
+Python
+Rust
+React
+Next.js: next js
+Vite: veet
+Tailwind: tail wind
+shadcn: shad cn, shad cien
+Base UI
+Radix
+Zod
+tRPC: t rpc, t r p c
+Drizzle
+Prisma
+Postgres: post gress, postgress
+PostgreSQL: postgre sql, post gres sql
+SQLite: sequel lite, sql lite
+MySQL: my sql
+Redis
+Kubernetes: cooper netties, kubernetties, kuber netes
+K8s: k eights, k eight s
+Docker
+Terraform: terra form
+GitHub: git hub
+GitLab: git lab
+Linear
+Sentry
+PostHog: post hog
+Grafana: grafanna
+Railway
+Fly.io: fly io, fly dot io
+Netlify: net lify
+RunPod: run pod
+Upstash: up stash
+Stripe
+Resend
+Tauri: tory
+Expo
+Homebrew: home brew
+macOS: mac os
+iOS
+Ubuntu
+Linux
+NixOS: nix os
+WSL
+Apple Silicon
+MacBook
+Mac Studio
+
+# Hardware
+GPU
+H100: h one hundred
+H200: h two hundred
+B200: b two hundred
+GB200: gb two hundred
+Blackwell
+Rubin
+DGX Spark
+DGX
+NVLink: nv link
+InfiniBand: infini band
+HBM
+Trainium: train ium
+NPU
+
+# Benchmarks and evals
+SWE-bench: swee bench, swe bench, s w e bench
+SWE-bench Verified
+SWE-bench Pro
+Terminal-Bench: terminal bench
+ARC-AGI: arc agi
+Humanity's Last Exam
+HLE
+GPQA: g p q a
+MMLU: m m l u
+AIME: aim e
+HumanEval: human eval
+tau-bench: tau bench, tao bench
+OSWorld: os world
+GDPval: gdp val
+FrontierMath: frontier math
+Chatbot Arena
+
+# Acronyms and jargon
+LLM: l l m
+SLM
+VLM
+VLA
+AGI: a g i
+ASI
+RLHF: r l h f
+RLAIF
+RLVR
+RL
+SFT: s f t
+DPO: d p o
+PPO: p p o
+GRPO: g r p o
+LoRA: laura
+QLoRA: q laura, q lora
+MoE: m o e
+RAG
+MCP: m c p
+KV cache: kv cash
+CoT
+TTFT
+FLOPs
+FP8
+FP4
+NVFP4
+BF16: bf sixteen
+INT8
+AWQ
+GPTQ
+SOTA: so ta
+RoPE
+GQA
+SSM
+JEPA: jeppa
+BERT: burt
+CLIP
+ASR
+TTS
+STT
+OCR
+NLP
+MLE
+SWE
+MLOps: ml ops
+LLMOps: llm ops
+LLM-as-a-judge
+CI/CD
+SDK
+CLI
+TUI: tooey
+IDE
+API
+JSON: jason
+JSONL: jason l, json l
+YAML: yamel, yammel
+OAuth: o auth, oh auth
+JWT
+gRPC: g rpc
+WebSocket: web socket
+SSH
+PR
+
+[context]
+model
+models
+deploy
+deployment
+server
+prompt
+prompts
+inference
+training
+fine-tuning
+benchmark
+eval
+repo
+api
+gpu
+token
+tokens
+context
+agent
+agents
+weights
+dataset
+checkpoint
+latency
+throughput
+embedding
+vector
+endpoint
+pipeline
+commit
+branch
+merge
+release
+reasoning
+parameters
+quantization
+harness
+terminal
+worktree
+codebase

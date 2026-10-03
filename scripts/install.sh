@@ -10,9 +10,10 @@ DEST="$HOME/Applications/Babble.app"
 
 swift build -c release
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Babble "$APP/Contents/MacOS/Babble"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/vocabulary.txt "$APP/Contents/Resources/vocabulary.txt"
 codesign --force --sign "$IDENTITY" "$APP"
 
 pkill -x Babble || true
