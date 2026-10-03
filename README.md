@@ -4,7 +4,7 @@ Push-to-talk dictation for macOS that never leaves your Mac.
 
 Hold **⌥D**, talk, let go. Whatever you said gets pasted wherever your cursor is. **Esc** while holding throws it away.
 
-- **Offline.** Runs on Apple's on-device speech models. No internet, no account.
+- **Offline.** Runs on Apple's on-device speech models. No internet & no account needed.
 - **English and Hinglish** from the same shortcut.
 - **Knows the lingo.** ~400 AI and dev terms spelled right out of the box: Hetzner, Tailscale, vLLM, Opus, Grok.
 - **Tiny.** No window, no Dock icon. The mic is off and it uses no CPU until you press the shortcut.
