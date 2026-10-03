@@ -140,7 +140,8 @@ final class AppController {
                     .init(
                         time: .now, raw: raw, text: text, recognizer: transcript.locale?.identifier ?? "",
                         confidence: (transcript.confidence * 1000).rounded() / 1000,
-                        heldSeconds: ((released - recording.startedAt) / .milliseconds(10)).rounded() / 100,
+                        // Only grace-period releases reach here, so subtract the grace to get the real hold.
+                        heldSeconds: ((released - recording.startedAt - Self.releaseGrace) / .milliseconds(10)).rounded() / 100,
                         app: app))
                 log.info("Pasted \(text.count, privacy: .public) chars \(ContinuousClock.now - released, privacy: .public) after release")
             }

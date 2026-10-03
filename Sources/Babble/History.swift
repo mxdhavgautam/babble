@@ -36,8 +36,10 @@ enum History {
             try FileManager.default.createDirectory(
                 at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             if !FileManager.default.fileExists(atPath: fileURL.path) {
-                FileManager.default.createFile(atPath: fileURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
+                FileManager.default.createFile(atPath: fileURL.path, contents: nil)
             }
+            // Enforced on every write, so a file created or copied in with looser permissions gets fixed.
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
             let handle = try FileHandle(forWritingTo: fileURL)
             defer { try? handle.close() }
             try handle.seekToEnd()
