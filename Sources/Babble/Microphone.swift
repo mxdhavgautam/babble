@@ -22,7 +22,7 @@ final class Microphone {
                 var first = true
                 for try await input in provider.analyzerInputs {
                     if first {
-                        log.info("First audio \(ContinuousClock.now - requested) after press")
+                        log.info("First audio \(ContinuousClock.now - requested, privacy: .public) after press")
                         first = false
                     }
                     dictation.append(input)

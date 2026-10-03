@@ -1,21 +1,38 @@
 import AppKit
 import QuartzCore
 
-/// Small floating black capsule with a scrolling waveform. Never takes focus, ignores the mouse,
-/// and only redraws (capped at 30fps) while listening.
+/// Small floating black capsule with a springy level meter. Never takes focus, ignores the mouse,
+/// and only animates while listening.
 @MainActor
 final class Pill {
-    private static let size = NSSize(width: 56, height: 32)
+    private static let size = NSSize(width: 66, height: 26)
     private static let barCount = 7
     private static let barWidth: CGFloat = 3
     private static let barGap: CGFloat = 3
     private static let minBarHeight: CGFloat = 3
-    private static let maxBarHeight: CGFloat = 20
+    private static let maxBarHeight: CGFloat = 15
+
+    /// Bell-curve weights: the middle bars react most, the edges least.
+    private static let weights: [Double] = (0..<barCount).map { i in
+        let offset = Double(i - barCount / 2) / 1.6
+        return 0.3 + 0.7 * exp(-offset * offset / 2)
+    }
+
+    /// One bar's spring state. Height is 0...1 of the bar's travel.
+    private struct Bar {
+        let layer: CALayer
+        let weight: Double
+        let stiffness: Double  // stiffer in the middle, so those bars snap up fastest
+        let wobbleSpeed: Double  // per-bar drift so loud passages don't look like a flat block
+        let wobblePhase: Double
+        var height = 0.0
+        var velocity = 0.0
+    }
 
     private let panel: NSPanel
-    private let bars: [CALayer]
-    private var history: [Float]
+    private var bars: [Bar]
     private var level: () -> Float = { 0 }
+    private var envelope = 0.0
     private var displayLink: CADisplayLink?
 
     init() {
@@ -42,23 +59,23 @@ final class Pill {
 
         let totalWidth = CGFloat(Self.barCount) * (Self.barWidth + Self.barGap) - Self.barGap
         let originX = ((Self.size.width - totalWidth) / 2).rounded()
-        bars = (0..<Self.barCount).map { i in
-            let bar = CALayer()
-            bar.backgroundColor = NSColor.white.cgColor
-            bar.cornerRadius = Self.barWidth / 2
-            bar.frame.origin.x = originX + CGFloat(i) * (Self.barWidth + Self.barGap)
-            bar.frame.size.width = Self.barWidth
-            root.addSublayer(bar)
-            return bar
+        bars = Self.weights.enumerated().map { i, weight in
+            let layer = CALayer()
+            layer.backgroundColor = NSColor.white.cgColor
+            layer.cornerRadius = Self.barWidth / 2
+            layer.frame.origin.x = originX + CGFloat(i) * (Self.barWidth + Self.barGap)
+            layer.frame.size.width = Self.barWidth
+            root.addSublayer(layer)
+            return Bar(
+                layer: layer, weight: weight, stiffness: 120 + 260 * weight,
+                wobbleSpeed: 5 + Double(i * 7 % 5), wobblePhase: Double(i) * 1.9)
         }
-        history = Array(repeating: 0, count: Self.barCount)
     }
 
     /// Shows the pill near the bottom of the screen under the mouse; each frame samples `level` (0...1).
     func show(level: @escaping () -> Float) {
         self.level = level
-        history = Array(repeating: 0, count: Self.barCount)
-        layoutBars()
+        settle()
 
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
@@ -69,16 +86,15 @@ final class Pill {
 
         displayLink?.invalidate()
         let link = panel.contentView!.displayLink(target: self, selector: #selector(tick))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 20, maximum: 30, preferred: 30)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         link.add(to: .main, forMode: .common)
         displayLink = link
     }
 
-    /// Freezes the waveform flat while the transcript is finalized.
+    /// Freezes the bars flat while the transcript is finalized.
     func showProcessing() {
         stopAnimating()
-        history = Array(repeating: 0, count: Self.barCount)
-        layoutBars()
+        settle()
     }
 
     func hide() {
@@ -86,9 +102,30 @@ final class Pill {
         panel.orderOut(nil)
     }
 
-    @objc private func tick() {
-        history.removeFirst()
-        history.append(level())
+    @objc private func tick(_ link: CADisplayLink) {
+        let dt = min(link.targetTimestamp - link.timestamp, 1.0 / 30)
+        // Envelope: rises almost instantly with the voice, falls back gently.
+        let input = Double(level())
+        envelope += (input - envelope) * (input > envelope ? 0.6 : 0.12)
+
+        for i in bars.indices {
+            let wobble = 0.8 + 0.2 * sin(link.timestamp * bars[i].wobbleSpeed + bars[i].wobblePhase)
+            let target = min(envelope * bars[i].weight * wobble, 1)
+            // Under-damped spring: a little overshoot gives the bars their bounce.
+            let stiffness = bars[i].stiffness
+            let damping = 2 * 0.55 * stiffness.squareRoot()
+            bars[i].velocity += (stiffness * (target - bars[i].height) - damping * bars[i].velocity) * dt
+            bars[i].height = max(0, bars[i].height + bars[i].velocity * dt)
+        }
+        layoutBars()
+    }
+
+    private func settle() {
+        envelope = 0
+        for i in bars.indices {
+            bars[i].height = 0
+            bars[i].velocity = 0
+        }
         layoutBars()
     }
 
@@ -96,12 +133,12 @@ final class Pill {
         let scale = panel.backingScaleFactor
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        for (bar, level) in zip(bars, history) {
-            // Snap to whole device pixels so bars stay sharp.
-            let raw = Self.minBarHeight + CGFloat(level) * (Self.maxBarHeight - Self.minBarHeight)
+        for bar in bars {
+            let raw = Self.minBarHeight + CGFloat(min(bar.height, 1.15)) * (Self.maxBarHeight - Self.minBarHeight)
+            // Even pixel counts keep bars centred on whole pixels, so their edges stay sharp.
             let height = (raw * scale / 2).rounded() * 2 / scale
-            bar.frame.size.height = height
-            bar.frame.origin.y = (Self.size.height - height) / 2
+            bar.layer.frame.size.height = height
+            bar.layer.frame.origin.y = (Self.size.height - height) / 2
         }
         CATransaction.commit()
     }

@@ -123,7 +123,7 @@ final class AppController {
             let text = raw.isEmpty ? raw : Polish.apply(raw, vocabulary: .load())
             pill.hide()
             if !text.isEmpty { await Paster.paste(text) }
-            log.info("Pasted \(ContinuousClock.now - released) after release")
+            log.info("Pasted \(ContinuousClock.now - released, privacy: .public) after release")
         }
         state = .idle
     }
