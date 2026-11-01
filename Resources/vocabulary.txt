@@ -1,5 +1,6 @@
 # Babble vocabulary: names and jargon AI engineers say out loud, so the recognizer's spelling gets fixed.
 # One term per line, optionally followed by known mishearings:  Term: misheard, another
+# A mishearing written with capitals only matches exactly: "main: Maine" leaves the Hindi "maine" alone.
 # Ordinary English words ("soul" → Sol) are only replaced when the sentence is technical.
 # Personal additions go in ~/Library/Application Support/Babble/vocabulary.txt.
 
@@ -11,18 +12,18 @@ Sonnet
 Haiku: hi coo
 Fable
 Mythos: mithos, my thos
-Claude Code: clot code, cloud code, clawed code, claud code
+Claude Code: clot code, cloud code, clawed code, claud code, plot code, clod code, flawed code
 Claude Desktop
 Claude Cowork: claude co work
 Claude.ai
-CLAUDE.md: claude md, claude dot md
+CLAUDE.md: claude md, claude dot md, clot md, cloud md, clawed md
 AGENTS.md: agents md, agents dot md
 
 # OpenAI models and products
 OpenAI: open ai, open a i
 ChatGPT: chat gpt, chat g p t, chat gbt
 GPT: g p t, gbt
-Sol: soul, seoul
+Sol: soul, seoul, saul
 Luna: lunah
 Astra
 Codex
@@ -37,7 +38,7 @@ Gemini: gemeni, jemini
 Gemma: jemma
 Flash-Lite: flash light
 Veo: vayo, veyo
-Imagen
+Imagen: imogen
 Nano Banana
 NotebookLM: notebook lm
 AI Studio
@@ -53,7 +54,7 @@ Grok: groc, grock, grog, grop
 Grokipedia: grok ipedia
 Meta
 Llama: lama
-Muse Spark: muse sparks
+Muse Spark: muse sparks, news park, moose spark
 Meta Superintelligence Labs
 MSL
 
@@ -114,6 +115,7 @@ Baseten: base ten
 Modal
 Replicate
 OpenRouter: open router
+Mobbin: mobin
 CoreWeave: core weave
 Scale AI
 Surge AI
@@ -168,7 +170,8 @@ Chris Olah: chris ola
 Cursor
 Windsurf: wind surf
 Devin Desktop
-T3 Code: t three code, tea three code
+T3 Code: t three code, tea three code, d3 code, c3 code, thirty three code
+T3 Connect: t three connect, d3 connect
 T3 Chat: t three chat, tea three chat
 GitHub Copilot
 Cline: klein, kline
@@ -278,10 +281,10 @@ Vercel: versel, vercell, vursel
 Convex
 Supabase: supa base, super base
 PlanetScale: planet scale
-Tailscale: tail scale
+Tailscale: tail scale, tail skill
 Tailnet: tail net, tail nut
 Cloudflare: cloud flare, cloud flur, cloudflur
-Hetzner: hetsner, het sner, head centre, head center
+Hetzner: hetsner, het sner, head centre, head center, headsner, hitchner, hetznan, hetzna
 IP
 DNS
 WorkOS: work os, work o s
@@ -315,7 +318,8 @@ Kubernetes: cooper netties, kubernetties, kuber netes
 K8s: k eights, k eight s
 Docker
 Terraform: terra form
-GitHub: git hub
+GitHub: git hub, gitab, kithub, git hab
+GitHub Actions: github actions, git hub actions
 README: read me, readme
 GitLab: git lab
 Linear
@@ -334,8 +338,11 @@ Expo
 Homebrew: home brew
 macOS: mac os
 iOS
-Ubuntu
+Ubuntu: buntu, bondu, you bantu
 Linux
+GNOME: nome, g nome
+Firefox: fire fox
+NVMe: nvm e, n v m e, nvmi
 NixOS: nix os
 WSL
 Apple Silicon
@@ -357,6 +364,9 @@ InfiniBand: infini band
 HBM
 Trainium: train ium
 NPU
+SanDisk: sand disk
+RAM
+SSD
 
 # Benchmarks and evals
 SWE-bench: swee bench, swe bench, s w e bench
@@ -439,8 +449,38 @@ gRPC: g rpc
 WebSocket: web socket
 SSH
 PR
+HTTP
+HTTPS
+URL
+
+# Agent workflow and tools
+Babble
+main: Maine
+frontend: front end
+backend: back end
+localhost: local host
+dotfiles: dot files
+worktree: work tree, walk tree
+worktrees: work trees, walk trees
+subagent: sub agent, suburgent
+subagents: sub agents, suburgents
+evals: e vals, evalves
+hill climb: He'll climb
+hill climbing: He'll climbing
+.env: dot env, dot n, dotenv
+CodeRabbit: code rabbit
+Overleaf: over leaf
+Figma
+Retool: re tool
+SCP
+EC2: e c 2
+S3
+AFM: a f m
+CLIProxyAPI: cli proxy api
+Claude Max: clawed max, cloud max
 
 [context]
+ai
 model
 models
 deploy
@@ -485,3 +525,48 @@ docs
 file
 update
 updated
+thread
+threads
+push
+config
+skill
+skills
+fleet
+browser
+directory
+container
+containers
+logs
+schema
+migration
+database
+diff
+rebase
+hook
+hooks
+staging
+production
+env
+test
+tests
+shell
+install
+build
+bug
+script
+project
+projects
+code
+upload
+download
+document
+folder
+edit
+error
+port
+cache
+setup
+review
+command
+debug
+screenshot

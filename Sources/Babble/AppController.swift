@@ -125,25 +125,24 @@ final class AppController {
         } else {
             pill.showProcessing()
             let app = History.frontmostApp
-            var transcript = Dictation.Transcript()
-            do { transcript = try await recording.dictation.finish() } catch {
+            var transcripts: [Transcript] = []
+            do { transcripts = try await recording.dictation.finish() } catch {
                 log.error("Transcription failed: \(error)")
             }
-            let raw = transcript.text
-            let text = raw.isEmpty ? raw : Polish.apply(raw, vocabulary: .load())
+            let decoded = Decoder.decode(transcripts, vocabulary: .load())
             pill.hide()
-            if text.isEmpty {
-                log.info("Nothing heard in \(released - recording.startedAt, privacy: .public)")
-            } else {
-                await Paster.paste(text)
+            if let decoded, !decoded.text.isEmpty {
+                await Paster.paste(decoded.text)
                 History.append(
                     .init(
-                        time: .now, raw: raw, text: text, recognizer: transcript.locale?.identifier ?? "",
-                        confidence: (transcript.confidence * 1000).rounded() / 1000,
+                        time: .now, raw: decoded.raw, text: decoded.text, recognizer: decoded.locale,
+                        confidence: (decoded.confidence * 1000).rounded() / 1000,
                         // Only grace-period releases reach here, so subtract the grace to get the real hold.
                         heldSeconds: ((released - recording.startedAt - Self.releaseGrace) / .milliseconds(10)).rounded() / 100,
                         app: app))
-                log.info("Pasted \(text.count, privacy: .public) chars \(ContinuousClock.now - released, privacy: .public) after release")
+                log.info("Pasted \(decoded.text.count, privacy: .public) chars \(ContinuousClock.now - released, privacy: .public) after release")
+            } else {
+                log.info("Nothing heard in \(released - recording.startedAt, privacy: .public)")
             }
         }
         state = .idle
