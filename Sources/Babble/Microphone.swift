@@ -47,6 +47,8 @@ final class Microphone {
 
     func stop() {
         session?.stopRunning()
+        // Let queued capture callbacks append before the caller finishes the utterance.
+        queue.sync { }
         output?.setSampleBufferDelegate(nil, queue: nil)
         session = nil
         output = nil
