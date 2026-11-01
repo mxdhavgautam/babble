@@ -72,9 +72,15 @@ enum Polish {
                                               "august", "september", "october", "november", "december"]
 
     /// The English recognizer writes "1st" even in prose: "the 1st thing" → "the first thing".
-    /// Dates keep their digits: "the 2nd of November", "October 3rd".
+    /// Dates keep their digits: "the 2nd of November", "October 3rd". It also glues the unit
+    /// "second" onto decimals as an ordinal: "3.52nd" → "3.5 second" (no ordinal has a decimal point).
     private static func spellOrdinals(_ tokens: [Token]) -> [Token] {
         tokens.enumerated().map { i, token in
+            if token.core.hasSuffix("2nd"), case let number = token.core.dropLast(3), number.contains("."),
+                number.allSatisfy({ $0.isNumber || $0 == "." }), number.last?.isNumber == true
+            {
+                return Token(leading: token.leading, core: number + " second", trailing: token.trailing)
+            }
             guard let word = ordinals[token.core.lowercased()] else { return token }
             let next = i + 1 < tokens.count ? tokens[i + 1].core.lowercased() : ""
             let previous = i > 0 ? tokens[i - 1].core.lowercased() : ""

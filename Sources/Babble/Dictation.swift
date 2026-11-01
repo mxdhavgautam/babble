@@ -110,7 +110,8 @@ final class Dictation: Sendable {
         started = Task { [analyzer] in try await analyzer.start(inputSequence: stream) }
     }
 
-    /// Converts a buffer of audio, in any format, and queues it for the analyzer.
+    /// Converts a buffer of audio, in any format, and queues it for the analyzer. Used for files;
+    /// live capture goes through the provider, whose conversion measured better on a real mic.
     func append(_ buffer: AVAudioPCMBuffer) {
         // Yield under the lock too, so nothing slips in after `finish` has flushed and closed.
         converting.withLock {
@@ -123,6 +124,15 @@ final class Dictation: Sendable {
             } catch {
                 log.error("Converting audio failed: \(error)")
             }
+        }
+    }
+
+    /// Queues audio already in the analyzer's format, as the mic's capture provider delivers it.
+    func append(_ audio: AnalyzerInput) {
+        converting.withLock {
+            guard !closed else { return }
+            received.withLock { $0 = true }
+            input.yield(audio)
         }
     }
 

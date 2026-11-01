@@ -37,6 +37,8 @@ let vocabulary = Vocabulary(lines: [
     ("this chat is on kestrel", "This chat is on Kestrel"),
     ("ask for a 2nd opinion, the 1st thing", "Ask for a second opinion, the first thing"),
     ("due on the 2nd of November", "Due on the 2nd of November"),
+    ("that 3.52nd outlier", "That 3.5 second outlier"),
+    ("the 52nd street", "The 52nd street"),
     ("run caffeinate dash D now", "Run caffeinate -d now"),
     ("Caffeinate – D", "Caffeinate -d"),
     ("open till/projects/babble", "Open ~/projects/babble"),
