@@ -62,7 +62,9 @@ Grok: groc, grock
 
 One term per line, with any common mishearings after a colon. Changes apply on the next dictation.
 
-Words that aren't real English ("groc") always get fixed. Real words ("Seoul" → Sol) only get swapped when the sentence is clearly technical, so "GPT 6, Seoul and Luna" becomes Sol but "my soul felt light" stays put.
+Words that aren't real English ("groc") always get fixed. Real words ("Seoul" → Sol) only get swapped when the sentence is clearly technical, so "GPT 6, Seoul and Luna" becomes Sol but "my soul felt light" stays put. Your own terms always get their capitals fixed, so "kestrel" becomes Kestrel anywhere.
+
+A mishearing written with capitals only matches that exact spelling. `main: Maine` fixes "merge it into Maine" and leaves the Hindi "maine" alone.
 
 Saying "slash" builds a path: "tilde slash projects slash babble" → `~/projects/babble`.
 
@@ -72,5 +74,12 @@ Saying "slash" builds a path: "tilde slash projects slash babble" → `~/project
 swift test
 say -o /tmp/t.wav --data-format=LEI16@16000 "deploy it to hetzner"
 ~/Applications/Babble.app/Contents/MacOS/Babble --transcribe /tmp/t.wav
+~/Applications/Babble.app/Contents/MacOS/Babble --polish "check the tail scale logs"
 /usr/bin/log stream --info --predicate 'subsystem == "dev.babble.app"'
 ```
+
+### Accuracy evals
+
+`scripts/eval.sh` prints the word error rate on sentences read aloud by macOS's Indian English voices, and `scripts/eval.sh real` scores your own recordings from `scripts/record.sh`. The sentences, recordings and a pinned copy of your vocabulary all live in `Evals/private`, which stays out of git because it's built from personal dictations. See the top of each script for the file format. Keep some sentences you never tune against, and check them before trusting a gain.
+
+The eval caches what the recognizers heard, so changing the clean-up code re-scores in about a second. Set `BABBLE_FRESH=1` after changing anything that touches audio.
