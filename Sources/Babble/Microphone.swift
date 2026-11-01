@@ -45,8 +45,11 @@ final class Microphone {
         return min(max((channel.averagePowerLevel + 55) / 40, 0), 1)
     }
 
+    /// Stops capture and waits for buffers already queued, so the last words reach the dictation
+    /// before it finishes. The callbacks never touch the main thread, so waiting here can't deadlock.
     func stop() {
         session?.stopRunning()
+        queue.sync {}
         output?.setSampleBufferDelegate(nil, queue: nil)
         session = nil
         output = nil
