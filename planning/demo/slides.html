@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Babble demo slides</title>
+<style>
+  /* Rendered one slide at a time at 1920x1080 by headless Chrome: slides.html#w, #a, #c, #d, #e.
+     The bottom-right corner stays empty for the camera bubble. */
+  :root { --bg:#000; --fg:#fff; --dim:#8a8a8a; --blue:#5fb3ff; --green:#7ed492; --red:#ff6b6b; --yellow:#ffd25f; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { background:var(--bg); color:var(--fg); height:100%; overflow:hidden;
+    font:34px/1.45 -apple-system, system-ui, sans-serif; }
+  section { position:absolute; inset:0; padding:100px 140px; display:none; flex-direction:column; }
+  section:target { display:flex; }
+  .n { font:600 28px ui-monospace, monospace; color:var(--blue); margin-bottom:16px; }
+  h1 { font-size:72px; line-height:1.1; font-weight:700; letter-spacing:-0.02em; margin-bottom:54px; }
+  ul { list-style:none; max-width:1400px; }
+  li { margin:0 0 22px; padding-left:36px; position:relative; }
+  li::before { content:"–"; position:absolute; left:0; color:var(--dim); }
+  .dim { color:var(--dim); }
+  b.b { color:var(--blue); } b.g { color:var(--green); } b.r { color:var(--red); } b.y { color:var(--yellow); }
+  code { font:0.88em ui-monospace, monospace; }
+  .arrow { color:var(--dim); padding:0 10px; }
+</style>
+</head>
+<body>
+
+<section id="w">
+  <div class="n">Why I built Babble</div>
+  <h1>I talk to my agents instead of typing</h1>
+  <ul>
+    <li>Speaking is more natural, and the agent gets more context</li>
+    <li>The Codex desktop app's dictation needed the whole app open, and it was heavy</li>
+    <li><b class="g">Babble:</b> light, instant, offline on Apple's Neural Engine</li>
+    <li>Built before Granola added dictation to its app</li>
+    <li><b class="b">Today:</b> meeting mode, on the same on-device pipeline</li>
+  </ul>
+</section>
+
+<section id="a">
+  <div class="n">How I built it</div>
+  <h1><b class="b">Claude Opus 5.5</b> in T3 Code</h1>
+  <ul>
+    <li>Planned together first: <code>planning/meeting-mode.md</code> <span class="dim">· 18 decisions, code map, test results, open items</span></li>
+    <li>A sub-agent mapped the codebase and Apple's SDKs</li>
+    <li>Wrote the code, ran the builds and tests, then tested the real app itself</li>
+    <li>Reviewed by <b class="y">Claude Fable 5.1</b> and <b class="g">GPT 6.1 Sol</b>, also running in T3 Code</li>
+    <li><code>README.md</code> <span class="dim">· how to run it, how it works, trade-offs</span></li>
+  </ul>
+</section>
+
+<section id="c">
+  <div class="n">Simple and secure</div>
+  <h1>Small on purpose</h1>
+  <ul>
+    <li>Reuses Babble's speech pipeline and decoder, no new models</li>
+    <li>Core Audio tap: audio permission only, no screen recording</li>
+    <li>Text only, files readable by my user only, nothing leaves the Mac</li>
+    <li><b class="y">Cut:</b> meeting detection, speaker ID, typed notes, saved audio</li>
+  </ul>
+</section>
+
+<section id="d">
+  <div class="n">Where the AI failed, and the fix</div>
+  <h1>Caught by me, by tests, by review</h1>
+  <ul>
+    <li>Agent: "assume headphones" <span class="arrow">→</span> I asked for echo cancellation <span class="arrow">→</span> <b class="g">voice-processed mic</b></li>
+    <li>First live test came back empty <span class="arrow">→</span> Swift 6 crash on Core Audio's thread <span class="arrow">→</span> <b class="g">fixed</b></li>
+    <li>Reviewers <b class="y">Fable 5.1</b> and <b class="g">Sol 6.1</b>: a race that lost notes, AirPods silencing the mic <span class="arrow">→</span> <b class="g">fixed</b></li>
+    <li>On-device model skipped titles <span class="arrow">→</span> <b class="g">separate title request</b></li>
+  </ul>
+</section>
+
+<section id="e">
+  <div class="n">Weakest part, what's next</div>
+  <h1>The notes model is small</h1>
+  <ul>
+    <li><b class="r">Weak:</b> 8,192-token on-device model repeats topics and mishears names</li>
+    <li><b class="r">Weak:</b> speakers come from the audio source, not voices</li>
+    <li><b class="g">Next:</b> guided generation so the notes structure is enforced</li>
+    <li><b class="g">Next:</b> longer real calls, then tune the prompts</li>
+  </ul>
+</section>
+
+</body>
+</html>

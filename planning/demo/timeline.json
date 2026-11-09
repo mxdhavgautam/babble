@@ -1,0 +1,30 @@
+{
+  "length": 120,
+  "teleprompter": { "width": 640, "height": 290 },
+  "keys": [ { "t": 31.0, "action": "start" }, { "t": 54.5, "action": "stop" } ],
+  "sections": [
+    { "start": 0, "end": 14, "visual": "camera", "overlay": "lower-third.png" },
+    { "start": 14, "end": 31, "visual": "slide", "image": "w.png" },
+    { "start": 31, "end": 67, "visual": "screen" },
+    { "start": 67, "end": 82, "visual": "slide", "image": "a.png" },
+    { "start": 82, "end": 94.5, "visual": "slide", "image": "c.png" },
+    { "start": 94.5, "end": 108, "visual": "slide", "image": "d.png" },
+    { "start": 108, "end": 120, "visual": "slide", "image": "e.png" }
+  ],
+  "cues": [
+    { "t": 0, "end": 14, "who": "you", "text": "Hi, I'm Madhav, and this is Babble, my Mac dictation app. I built it because I speak my prompts. That feels more natural than typing, and it gives the model more context." },
+    { "t": 14, "end": 22, "who": "you", "text": "I used to dictate in the Codex app, but it had to stay open, and it was heavy." },
+    { "t": 22, "end": 31, "who": "you", "text": "So Babble runs offline, on Apple's Neural Engine. I had it before Granola added dictation. And now it does meetings too." },
+    { "t": 31, "end": 32.5, "who": "cue", "text": "Babble starts the meeting. Stay quiet." },
+    { "t": 32.5, "end": 36.3, "who": "them", "audio": "t1.wav", "text": "Hi! Quick check before Friday. Is the beta ready to ship?" },
+    { "t": 37, "end": 42.5, "who": "you", "text": "Almost. There are two crash bugs left, and I'll fix them by Thursday." },
+    { "t": 43.3, "end": 47.7, "who": "them", "audio": "t2.wav", "text": "Great. Legal also needs the analytics list before we submit." },
+    { "t": 48.5, "end": 53, "who": "you", "text": "Sure, I'll send that list to legal today. Talk Thursday!" },
+    { "t": 53, "end": 55, "who": "cue", "text": "Babble stops the meeting. Stay quiet." },
+    { "t": 55, "end": 67, "who": "you", "text": "That's it. Every line showed up as me or them while we talked. Now Apple's on-device model writes the notes and action items." },
+    { "t": 67, "end": 82, "who": "you", "text": "I built this with Claude Opus 5.5 in T3 Code, my orchestrator of choice. We planned it together, then it built and tested the app. Claude Fable 5.1 and GPT 6.1 Sol reviewed it." },
+    { "t": 82, "end": 94.5, "who": "you", "text": "I kept it simple. It reuses Babble's speech pipeline, only needs audio permission, and saves text only I can read. I skipped meeting detection and speaker ID." },
+    { "t": 94.5, "end": 108, "who": "you", "text": "The AI wasn't always right. It first said to assume headphones, but I pushed for echo cancellation, and it got that working. The reviewers caught a race that lost notes." },
+    { "t": 108, "end": 120, "who": "you", "text": "The weakest part is the small notes model. It repeats topics and mishears names. Next, I'd enforce the format and test longer calls. Thanks for watching!" }
+  ]
+}

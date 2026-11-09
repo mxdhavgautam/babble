@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Teleprompter</title>
+<style>
+  :root { --bg:#000; --fg:#fff; --dim:#777; --you:#7ed492; --them:#5fb3ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { background:var(--bg); color:var(--fg); height:100%; overflow:hidden;
+    font:600 27px/1.3 -apple-system, system-ui, sans-serif; }
+  main { padding:12px 24px; display:flex; flex-direction:column; height:100%; }
+  #who { font:700 18px ui-monospace, monospace; letter-spacing:.08em; margin-bottom:6px; }
+  #text { flex:1; }
+  .you #who { color:var(--you); }
+  .them #who { color:var(--them); } .them #text { color:var(--dim); }
+  .cue #who, .cue #text { color:var(--dim); }
+  #bar { height:6px; background:#222; margin:8px 0 6px; }
+  #fill { height:100%; width:0; background:var(--you); }
+  .them #fill { background:var(--them); } .cue #fill { background:var(--dim); }
+  #next { font:400 17px -apple-system, system-ui, sans-serif; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style>
+</head>
+<body>
+<main>
+  <div id="who"></div>
+  <div id="text"></div>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="next"></div>
+</main>
+<script src="timeline.js"></script>
+<script>
+  // Shows the cue for the current moment of the take. t0 (epoch ms) comes from the URL hash and is
+  // shared with the recording driver.
+  const t0 = Number(new URLSearchParams(location.hash.slice(1)).get("t0"));
+  const cues = TIMELINE.cues, length = TIMELINE.length;
+  const $ = (id) => document.getElementById(id);
+  const label = { you: "YOU", them: "THEM (plays on the speaker)", cue: "WAIT" };
+  let last = "";
+  function tick() {
+    const t = (Date.now() - t0) / 1000;
+    let cls, who, text, frac = 0, next = "";
+    if (t < 0) {
+      cls = "cue"; who = "GET READY"; text = `Starting in ${Math.ceil(-t)}. First line: ${cues[0].text}`;
+    } else if (t >= length) {
+      cls = "cue"; who = "DONE"; text = "That's the take. Thank you.";
+    } else {
+      const i = cues.findLastIndex((c) => c.t <= t);
+      const c = cues[i], n = cues[i + 1];
+      const inside = t < c.end;
+      cls = inside ? c.who : "cue";
+      who = inside ? label[c.who] : "WAIT";
+      text = inside ? c.text : (n ? "" : "");
+      frac = inside ? (t - c.t) / (c.end - c.t) : 0;
+      if (n) next = `Next ${n.who === "you" ? "(you)" : "(them)"} in ${Math.max(0, n.t - t).toFixed(0)}s: ${n.text}`;
+    }
+    const key = cls + who + text + next;
+    if (key !== last) {
+      last = key;
+      document.body.className = cls;
+      $("who").textContent = who; $("text").textContent = text; $("next").textContent = next;
+    }
+    $("fill").style.width = `${Math.min(100, frac * 100)}%`;
+  }
+  setInterval(tick, 50); tick();
+</script>
+</body>
+</html>
