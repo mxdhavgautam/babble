@@ -8,3 +8,4 @@ build/
 .claude/
 Evals/recordings/
 Evals/private/
+__pycache__/

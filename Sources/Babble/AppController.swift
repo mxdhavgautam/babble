@@ -4,6 +4,7 @@ import Carbon.HIToolbox
 import ServiceManagement
 
 /// Push-to-talk: hold ⌥D to dictate, release to paste, Esc while holding to discard.
+/// Meeting mode: ⌥T starts and stops a meeting, ⌥Esc throws it away. Dictation is off meanwhile.
 @MainActor
 final class AppController {
     private struct Recording {
@@ -31,6 +32,7 @@ final class AppController {
     private var state = State.idle
     private var dHeld = false
     private var pendingEnd: Task<Void, Never>?
+    private var meeting: (session: MeetingSession, discardHotKey: UInt32)?
 
     init() {
         hotKeys.register(keyCode: kVK_ANSI_D, modifiers: optionKey) { [unowned self] phase in
@@ -44,7 +46,37 @@ final class AppController {
             case .released: scheduleEnd()
             }
         }
+        hotKeys.register(keyCode: kVK_ANSI_T, modifiers: optionKey) { [unowned self] phase in
+            if phase == .pressed { toggleMeeting() }
+        }
+        Notifier.shared.install()
         Task { await setUp() }
+    }
+
+    private func toggleMeeting() {
+        if let meeting {
+            hotKeys.unregister(meeting.discardHotKey)
+            self.meeting = nil
+            Task { await meeting.session.stop() }
+            return
+        }
+        guard case .idle = state else { return }
+        do {
+            let session = try MeetingSession()
+            do { try session.start() } catch {
+                session.discard()
+                throw error
+            }
+            let discardHotKey = hotKeys.register(keyCode: kVK_Escape, modifiers: optionKey) { [unowned self] phase in
+                guard phase == .pressed, let meeting else { return }
+                hotKeys.unregister(meeting.discardHotKey)
+                self.meeting = nil
+                meeting.session.discard()
+            }
+            meeting = (session, discardHotKey)
+        } catch {
+            log.error("Meeting failed to start: \(error)")
+        }
     }
 
     private func setUp() async {
@@ -63,7 +95,7 @@ final class AppController {
     }
 
     private func begin() {
-        guard case .idle = state else { return }
+        guard case .idle = state, meeting == nil else { return }
         let dictation = Dictation()
         let microphone = microphone
         let capture = Task { try await microphone.start(into: dictation) }

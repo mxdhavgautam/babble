@@ -21,7 +21,9 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Babble listens only while you hold the shortcut, and transcribes on this Mac.</string>
+	<string>Babble listens while you hold the shortcut or record a meeting, and transcribes on this Mac.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>In meeting mode (⌥T), Babble transcribes the other side of the call on this Mac.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Babble transcribes your speech on this Mac.</string>
 </dict>
